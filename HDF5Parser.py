@@ -7,16 +7,12 @@ sys.path.append('/usr/local/lib/python3.5/dist-packages')
 import pandas as pd
 import numpy as np
 from scipy import stats
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-import seaborn as sns
-sns.set_style("whitegrid")
-sns.set(font_scale = 2.5)
+
 import h5py
 
 
 
-CWD = '/home/selwyni/Desktop/h5'
+CWD = ''
 os.chdir(CWD)
 
 
