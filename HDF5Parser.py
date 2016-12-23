@@ -10,8 +10,6 @@ from scipy import stats
 
 import h5py
 
-
-
 CWD = ''
 os.chdir(CWD)
 
@@ -132,6 +130,7 @@ def writeMeanSVMandEVM(filename):
     medianSVMs = []
     medianEVMs = []
 
+    grainvolumes = []
     for step in range(len(datapointdirs)):
         SVM = retrieveSVM(datapointdirs[step], dimensions)
         EVM = retrieveEVM(datapointdirs[step], dimensions)
@@ -157,6 +156,7 @@ def writeMeanSVMandEVM(filename):
             condition = grainIDs == int(grainID)
             grainSVM = np.extract(condition, SVM)
             grainEVM = np.extract(condition, EVM)
+
             meanSVM.append(np.mean(grainSVM))
             meanEVM.append(np.mean(grainEVM))
 
@@ -172,6 +172,7 @@ def writeMeanSVMandEVM(filename):
             medianSVM.append(np.median(grainSVM))
             medianEVM.append(np.median(grainEVM))
 
+            grainsize.append(np.sum(condition))
         for phase in [1,2]:
             condition = phases == phase
             if (phase == 1):
@@ -201,6 +202,7 @@ def writeMeanSVMandEVM(filename):
         medianSVMs.append(medianSVM)
         medianEVMs.append(medianEVM)
 
+        grainvolumes.append(grainsize)
         # Grain weighted properties
         avgmeanSVM.append(np.mean(meanSVM))
         avgmeanEVM.append(np.mean(meanEVM))
@@ -222,6 +224,7 @@ def writeMeanSVMandEVM(filename):
     medianEVMmat = np.transpose(np.array(medianEVMs))
     BCCphasemat = np.transpose(np.array([BCCSVM, BCCEVM]))
     HCPphasemat = np.transpose(np.array([HCPSVM, HCPEVM]))
+    grainsizemat = np.transpose(np.array(grainvolumes))
 
     if ('MeanSVM' not in sampledata):
         sampledata.create_dataset("MeanSVM", data=SVMmat)
@@ -253,7 +256,8 @@ def writeMeanSVMandEVM(filename):
         sampledata.create_dataset("MeanHCPAvgs", data = HCPphasemat)
     if ('sigmaSVM' not in sampledata):
         sampledata.create_dataset("sigmaValues", data = sigmaSVMmat)
-
+    if ('grainVolume' not in sampledata):
+        sampledata.create_dataset("grainVolume", data = grainsizemat)
 
 
 
@@ -277,9 +281,10 @@ def writeMeansToCSV(filename):
         'minSVM' in sampledata and
         'minEVM' in sampledata and
         'medianSVM' in sampledata and
-        'medianEVM' in sampledata)):
+        'medianEVM' in sampledata and
+        'grainVolume' in sampledata)):
         writeMeanSVMandEVM(filename)
-Grain
+
     for step in sampledata:
         if ('Step-' in step):
             stepcount += 1
@@ -295,6 +300,7 @@ Grain
     minEVMarr = np.zeros((numOfGrains, stepcount))
     medianSVMarr = np.zeros((numOfGrains, stepcount))
     medianEVMarr = np.zeros((numOfGrains, stepcount))
+    grainVolumearr = np.zeroes((numOfGrains, stepcount))
     avgarr = np.zeros((stepcount, 2))
     allavgarr = np.zeros((stepcount, 2))
     BCCarr = np.zeros((stepcount, 2))
@@ -314,6 +320,7 @@ Grain
     sampledata['AllPoints'].read_direct(allavgarr)
     sampledata['MeanBCCAvgs'].read_direct(BCCarr)
     sampledata['MeanHCPAvgs'].read_direct(HCParr)
+    sampledata['grainVolume'].read_direct(grainVolumearr)
 
     topname = filename.split('.')[0]
 
@@ -331,6 +338,7 @@ Grain
     np.savetxt(topname + 'TimeStepVolumeAvg.csv', allavgarr, delimiter = ',')
     np.savetxt(topname + 'TimeBCCAvg.csv', BCCarr, delimiter = ',')
     np.savetxt(topname + 'TimeHCPAvg.csv', HCParr, delimiter = ',')
+    np.savetxt(topname + 'GrainVolume.csv', grainVolumearr, delimiter = ',')
 
 writeMeansToCSV('f20_eqdata.h5')
 writeMeansToCSV('f20_diskdata.h5')
