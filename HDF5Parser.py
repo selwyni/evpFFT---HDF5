@@ -21,8 +21,14 @@ def readHDF5(filename, permissions='r'):
     container = sample['3Ddatacontainer']
     return container
 
+
+################################################
+# Dataset Retrieval Functions
+################################################
+
 def retrieveSpacing(container):
     # Input - HDF5 Container
+    # Output - Dict w/ spacing specs
     steplist = []
     LatticeParameters = []
     x = []
@@ -71,22 +77,6 @@ def retrieveGrainIDs(container):
     grainIDs.read_direct(arr)
     return arr
 
-def retrieveSVM(datapoint, dims):
-    # Input - Datapoint directory, dimensions
-    # Output  Numpy 3D arrays
-    arr = np.zeros((dims['x'], dims['y'], dims['z']))
-    SVMs = datapoint['Sfields']['SVM']
-    SVMs.read_direct(arr)
-    return arr
-
-def retrieveEVM(datapoint, dims):
-    # Input - Datapoint directory, dimensions
-    # Output  Numpy 3D arrays
-    arr = np.zeros((dims['x'], dims['y'], dims['z']))
-    SVMs = datapoint['Dfields']['EVM']
-    SVMs.read_direct(arr)
-    return arr
-
 def retrievePhase(container):
     # Input - HDF5 container
     # Output - Numpy 3D array
@@ -98,6 +88,44 @@ def retrievePhase(container):
     arr = np.zeros((dims['x'], dims['y'], dims['z']))
     phase.read_direct(arr)
     return arr
+
+def retrieveSVM(datapoint, dims, SVM='SVM'):
+    # Input - Datapoint directory, dimensions, SVM dataset
+    # SVM = ['Mean_Stress', 'S11', 'S12', 'S13', 'S22', 'S23', 'S33', 'SVM']
+    # Output  Numpy 3D array of dataset
+    arr = np.zeros((dims['x'], dims['y'], dims['z']))
+    SVMs = datapoint['Sfields'][SVM]
+    SVMs.read_direct(arr)
+    return arr
+
+def retrieveEVM(datapoint, dims, EVM='EVM'):
+    # Input - Datapoint directory, dimensions, EVM dataset
+    # EVM = ['D11', 'D12', 'D13', 'D22', 'D23', 'D33', 'EVM']
+    # Output  Numpy 3D array of dataset
+    arr = np.zeros((dims['x'], dims['y'], dims['z']))
+    SVMs = datapoint['Dfields'][EVM]
+    SVMs.read_direct(arr)
+    return arr
+
+def retriveEulerAngles(datapoint, dims, angle='Phi'):
+    # Input - Datapoint directory, dimensions, angle = ['Phi', 'Phi1', 'phi2']
+    # Output - Numpy 3D array containing the particular EulerAngle
+    arr = np.zeros((dims['x'], dims['y'], dims['z']))
+    angle = datapoint['Eulerangle'][angle]
+    angle.read_direct(arr)
+    return arr
+
+def retrieveSlipInformation(datapoint, dims):
+    # Input - Datapoint directory, dimensions
+    # Output - Number 3D array containing slip information per voxel
+    arr = np.zeros((dims['x'], dims['y'], dims['z']))
+    slip = datapoint['Slip_Information']['Slip_active_no']
+    slip.read_direct(arr)
+    return arr
+
+################################################
+# Writing Functions
+################################################
 
 def writeMeanSVMandEVM(filename):
     sampledata = readHDF5(filename, 'r+')
@@ -136,19 +164,14 @@ def writeMeanSVMandEVM(filename):
         EVM = retrieveEVM(datapointdirs[step], dimensions)
         meanSVM = []
         meanEVM = []
-
         sigmaSVM = []
         sigmaEVM = []
-
         maxSVM = []
         maxEVM = []
-
         minSVM = []
         minEVM = []
-
         medianSVM = []
         medianEVM = []
-
         grainsize = []
         for grainID in np.arange(1, numOfGrains + 1):
             # For the properties of individual grains.
@@ -174,6 +197,7 @@ def writeMeanSVMandEVM(filename):
 
             grainsize.append(np.sum(condition))
         for phase in [1,2]:
+            # Pick out phase properties
             condition = phases == phase
             if (phase == 1):
                 BCCSVMvals = np.extract(condition, SVM)
