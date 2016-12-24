@@ -1,15 +1,15 @@
 import sys
-import csv
 import os
 print(sys.version)
 sys.path.append('/usr/local/lib/python3.5/dist-packages')
-
-import pandas as pd
 import numpy as np
 from scipy import stats
-
 import h5py
+import referenceframefunc
 
+####################
+# SET PRIOR TO USE
+####################
 CWD = ''
 os.chdir(CWD)
 
@@ -159,9 +159,12 @@ def writeMeanSVMandEVM(filename):
     medianEVMs = []
 
     grainvolumes = []
+
+    slipsys = []
     for step in range(len(datapointdirs)):
-        SVM = retrieveSVM(datapointdirs[step], dimensions)
-        EVM = retrieveEVM(datapointdirs[step], dimensions)
+        SVM = retrieveSVM(datapointdirs[step], dimensions, 'SVM')
+        EVM = retrieveEVM(datapointdirs[step], dimensions, 'EVM')
+        slip = retrieveSlipInformation(datapointdirs[step], dimensions)
         meanSVM = []
         meanEVM = []
         sigmaSVM = []
@@ -173,12 +176,14 @@ def writeMeanSVMandEVM(filename):
         medianSVM = []
         medianEVM = []
         grainsize = []
+        stepslipsys = []
         for grainID in np.arange(1, numOfGrains + 1):
             # For the properties of individual grains.
             # Output is a list of 1 value per grain
             condition = grainIDs == int(grainID)
             grainSVM = np.extract(condition, SVM)
             grainEVM = np.extract(condition, EVM)
+            grainslip = np.extract(condition, slip)
 
             meanSVM.append(np.mean(grainSVM))
             meanEVM.append(np.mean(grainEVM))
@@ -196,6 +201,8 @@ def writeMeanSVMandEVM(filename):
             medianEVM.append(np.median(grainEVM))
 
             grainsize.append(np.sum(condition))
+
+            stepslipsys.append(np.mean(grainslip))
         for phase in [1,2]:
             # Pick out phase properties
             condition = phases == phase
@@ -227,6 +234,7 @@ def writeMeanSVMandEVM(filename):
         medianEVMs.append(medianEVM)
 
         grainvolumes.append(grainsize)
+        slipsys.append(stepslipsys)
         # Grain weighted properties
         avgmeanSVM.append(np.mean(meanSVM))
         avgmeanEVM.append(np.mean(meanEVM))
@@ -249,6 +257,7 @@ def writeMeanSVMandEVM(filename):
     BCCphasemat = np.transpose(np.array([BCCSVM, BCCEVM]))
     HCPphasemat = np.transpose(np.array([HCPSVM, HCPEVM]))
     grainsizemat = np.transpose(np.array(grainvolumes))
+    slipmat = np.transpose(np.array(slipsys))
 
     if ('MeanSVM' not in sampledata):
         sampledata.create_dataset("MeanSVM", data=SVMmat)
@@ -282,7 +291,8 @@ def writeMeanSVMandEVM(filename):
         sampledata.create_dataset("sigmaValues", data = sigmaSVMmat)
     if ('grainVolume' not in sampledata):
         sampledata.create_dataset("grainVolume", data = grainsizemat)
-
+    if ('avgSlipSys' not in sampledata):
+        sampledata.create_dataset('avgSlipSys', data = slipsys)
 
 
 def writeMeansToCSV(filename):
@@ -306,7 +316,8 @@ def writeMeansToCSV(filename):
         'minEVM' in sampledata and
         'medianSVM' in sampledata and
         'medianEVM' in sampledata and
-        'grainVolume' in sampledata)):
+        'grainVolume' in sampledata and
+        'avgSlipSys' in sampledata)):
         writeMeanSVMandEVM(filename)
 
     for step in sampledata:
