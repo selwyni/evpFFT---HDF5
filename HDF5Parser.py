@@ -1,16 +1,18 @@
 import sys
 import os
+
+from referenceframefunc import *
 print(sys.version)
 sys.path.append('/usr/local/lib/python3.5/dist-packages')
 import numpy as np
 from scipy import stats
 import h5py
-import referenceframefunc
+from itertools import product
 
 ####################
 # SET PRIOR TO USE
 ####################
-CWD = ''
+CWD = '/home/selwyni/Desktop/h5/TestData'
 os.chdir(CWD)
 
 
@@ -107,11 +109,17 @@ def retrieveEVM(datapoint, dims, EVM='EVM'):
     SVMs.read_direct(arr)
     return arr
 
-def retriveEulerAngles(datapoint, dims, angle='Phi'):
+def retrieveEulerAngles(datapoint, dims, angle='Phi'):
     # Input - Datapoint directory, dimensions, angle = ['Phi', 'Phi1', 'phi2']
     # Output - Numpy 3D array containing the particular EulerAngle
+    if (angle.lower() == 'phi'):
+        dataset = 'Phi'
+    elif (angle.lower() == 'phi1'):
+        dataset = 'Phi1'
+    elif (angle.lower() == 'phi2'):
+        dataset = 'phi2'
     arr = np.zeros((dims['x'], dims['y'], dims['z']))
-    angle = datapoint['Eulerangle'][angle]
+    angle = datapoint['Eulerangle'][dataset]
     angle.read_direct(arr)
     return arr
 
@@ -119,10 +127,47 @@ def retrieveSlipInformation(datapoint, dims):
     # Input - Datapoint directory, dimensions
     # Output - Number 3D array containing slip information per voxel
     arr = np.zeros((dims['x'], dims['y'], dims['z']))
-    slip = datapoint['Slip_Information']['Slip_active_no']
+    slip = datapoint['Slip_information']['Slip_active_no']
     slip.read_direct(arr)
     return arr
 
+def grainAverageEulerAngle(phi1, Phi, phi2, P = 1):
+    # Input -  Bunge Convention phi1, Phi, phi2 arrays in DEGREES, Permutation operator (+- 1)
+    # Output - Tuple with average phi1, Phi, ph2 in Bunge Convention
+    phi1 = np.radians(phi1)
+    Phi = np.radians(Phi)
+    phi2 = np.radians(phi2)
+
+    q0vals = []
+    q1vals = []
+    q2vals = []
+    q3vals = []
+
+    # Convert to radians
+    for obj in [phi1, Phi, phi2]:
+        # phi1 in [0, 2*pi]
+        # Phi in [0, pi]
+        # phi2 in [0, 2*pi]
+        condition = obj < 0
+        obj[condition] += 2*np.pi
+
+    assert(np.size(phi1) == np.size(phi2) == np.size(Phi))
+
+    for idx in range(np.size(phi1)):
+        (q0, q1, q2, q3) = euler2quaternion(phi1[idx], Phi[idx], phi2[idx])
+        q0vals.append(q0)
+        q1vals.append(q1)
+        q2vals.append(q2)
+        q3vals.append(q3)
+
+    meanq0 = np.mean(q0vals)
+    meanq1 = np.mean(q1vals)
+    meanq2 = np.mean(q2vals)
+    meanq3 = np.mean(q3vals)
+
+    THETA = quaternion2euler(meanq0, meanq1, meanq2, meanq3)
+    print(THETA)
+    return THETA
 ################################################
 # Writing Functions
 ################################################
@@ -165,6 +210,11 @@ def writeMeanSVMandEVM(filename):
         SVM = retrieveSVM(datapointdirs[step], dimensions, 'SVM')
         EVM = retrieveEVM(datapointdirs[step], dimensions, 'EVM')
         slip = retrieveSlipInformation(datapointdirs[step], dimensions)
+        Phi = retrieveEulerAngles(datapointdirs[step], dimensions, 'Phi')
+        phi1 = retrieveEulerAngles(datapointdirs[step], dimensions, 'phi1')
+        phi2 = retrieveEulerAngles(datapointdirs[step], dimensions,'phi2')
+
+
         meanSVM = []
         meanEVM = []
         sigmaSVM = []
@@ -184,7 +234,11 @@ def writeMeanSVMandEVM(filename):
             grainSVM = np.extract(condition, SVM)
             grainEVM = np.extract(condition, EVM)
             grainslip = np.extract(condition, slip)
+            grainPhi = np.extract(condition, Phi)
+            grainPhi1 = np.extract(condition, phi1)
+            grainPhi2 = np.extract(condition, phi2)
 
+            THETA = grainAverageEulerAngle(grainPhi1, grainPhi, grainPhi2)
             meanSVM.append(np.mean(grainSVM))
             meanEVM.append(np.mean(grainEVM))
 
@@ -201,8 +255,8 @@ def writeMeanSVMandEVM(filename):
             medianEVM.append(np.median(grainEVM))
 
             grainsize.append(np.sum(condition))
-
             stepslipsys.append(np.mean(grainslip))
+
         for phase in [1,2]:
             # Pick out phase properties
             condition = phases == phase
@@ -375,6 +429,4 @@ def writeMeansToCSV(filename):
     np.savetxt(topname + 'TimeHCPAvg.csv', HCParr, delimiter = ',')
     np.savetxt(topname + 'GrainVolume.csv', grainVolumearr, delimiter = ',')
 
-writeMeansToCSV('f20_eqdata.h5')
-writeMeansToCSV('f20_diskdata.h5')
-writeMeansToCSV('f20_1051data.h5')
+writeMeanSVMandEVM('f20_eqdata.h5')
