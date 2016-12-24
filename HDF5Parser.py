@@ -12,7 +12,7 @@ from itertools import product
 ####################
 # SET PRIOR TO USE
 ####################
-CWD = '/home/selwyni/Desktop/h5/TestData'
+CWD = ''
 os.chdir(CWD)
 
 
@@ -166,8 +166,8 @@ def grainAverageEulerAngle(phi1, Phi, phi2, P = 1):
     meanq3 = np.mean(q3vals)
 
     THETA = quaternion2euler(meanq0, meanq1, meanq2, meanq3)
-    print(THETA)
     return THETA
+
 ################################################
 # Writing Functions
 ################################################
@@ -204,16 +204,18 @@ def writeMeanSVMandEVM(filename):
     medianEVMs = []
 
     grainvolumes = []
-
     slipsys = []
+    bungephi1 = []
+    bungePhi = []
+    bungephi2 = []
     for step in range(len(datapointdirs)):
+        print("Going through Step", step)
         SVM = retrieveSVM(datapointdirs[step], dimensions, 'SVM')
         EVM = retrieveEVM(datapointdirs[step], dimensions, 'EVM')
         slip = retrieveSlipInformation(datapointdirs[step], dimensions)
         Phi = retrieveEulerAngles(datapointdirs[step], dimensions, 'Phi')
         phi1 = retrieveEulerAngles(datapointdirs[step], dimensions, 'phi1')
         phi2 = retrieveEulerAngles(datapointdirs[step], dimensions,'phi2')
-
 
         meanSVM = []
         meanEVM = []
@@ -227,6 +229,9 @@ def writeMeanSVMandEVM(filename):
         medianEVM = []
         grainsize = []
         stepslipsys = []
+        grainphi1 = []
+        grainPhi = []
+        grainphi2 = []
         for grainID in np.arange(1, numOfGrains + 1):
             # For the properties of individual grains.
             # Output is a list of 1 value per grain
@@ -234,11 +239,11 @@ def writeMeanSVMandEVM(filename):
             grainSVM = np.extract(condition, SVM)
             grainEVM = np.extract(condition, EVM)
             grainslip = np.extract(condition, slip)
-            grainPhi = np.extract(condition, Phi)
-            grainPhi1 = np.extract(condition, phi1)
-            grainPhi2 = np.extract(condition, phi2)
+            grainPhiSet = np.extract(condition, Phi)
+            grainPhi1Set = np.extract(condition, phi1)
+            grainPhi2Set = np.extract(condition, phi2)
+            (phi1val, Phival, phi2val) = grainAverageEulerAngle(grainPhi1Set, grainPhiSet, grainPhi2Set)
 
-            THETA = grainAverageEulerAngle(grainPhi1, grainPhi, grainPhi2)
             meanSVM.append(np.mean(grainSVM))
             meanEVM.append(np.mean(grainEVM))
 
@@ -256,6 +261,10 @@ def writeMeanSVMandEVM(filename):
 
             grainsize.append(np.sum(condition))
             stepslipsys.append(np.mean(grainslip))
+
+            grainphi1.append(phi1val)
+            grainPhi.append(Phival)
+            grainphi2.append(phi2val)
 
         for phase in [1,2]:
             # Pick out phase properties
@@ -289,6 +298,11 @@ def writeMeanSVMandEVM(filename):
 
         grainvolumes.append(grainsize)
         slipsys.append(stepslipsys)
+
+        bungephi1.append(grainphi1)
+        bungePhi.append(grainPhi)
+        bungephi2.append(grainphi2)
+
         # Grain weighted properties
         avgmeanSVM.append(np.mean(meanSVM))
         avgmeanEVM.append(np.mean(meanEVM))
@@ -312,6 +326,10 @@ def writeMeanSVMandEVM(filename):
     HCPphasemat = np.transpose(np.array([HCPSVM, HCPEVM]))
     grainsizemat = np.transpose(np.array(grainvolumes))
     slipmat = np.transpose(np.array(slipsys))
+    print(np.shape(slipmat))
+    phi1mat = np.transpose(np.array(bungephi1))
+    Phimat = np.transpose(np.array(bungePhi))
+    phi2mat = np.transpose(np.array(bungephi2))
 
     if ('MeanSVM' not in sampledata):
         sampledata.create_dataset("MeanSVM", data=SVMmat)
@@ -342,19 +360,23 @@ def writeMeanSVMandEVM(filename):
     if ('MeanHCPAvgs' not in sampledata):
         sampledata.create_dataset("MeanHCPAvgs", data = HCPphasemat)
     if ('sigmaSVM' not in sampledata):
-        sampledata.create_dataset("sigmaValues", data = sigmaSVMmat)
+        sampledata.create_dataset("sigmaSVM", data = sigmaSVMmat)
     if ('grainVolume' not in sampledata):
         sampledata.create_dataset("grainVolume", data = grainsizemat)
     if ('avgSlipSys' not in sampledata):
-        sampledata.create_dataset('avgSlipSys', data = slipsys)
-
+        sampledata.create_dataset('avgSlipSys', data = slipmat)
+    if ('grainAvgphi1' not in sampledata):
+        sampledata.create_dataset('grainAvgphi1', data = phi1mat)
+    if ('grainAvgPhi' not in sampledata):
+        sampledata.create_dataset('grainAvgPhi', data = Phimat)
+    if ('grainAvgphi2' not in sampledata):
+        sampledata.create_dataset('grainAvgphi2', data = phi2mat)
 
 def writeMeansToCSV(filename):
     sampledata = readHDF5(filename, 'r+')
     stepcount = 0
     grainIDs = retrieveGrainIDs(sampledata)
     numOfGrains = int(np.nanmax(grainIDs))
-    datain = 0
 
     if (not ('MeanSVM' in sampledata and
         'MeanEVM' in sampledata and
@@ -371,7 +393,10 @@ def writeMeansToCSV(filename):
         'medianSVM' in sampledata and
         'medianEVM' in sampledata and
         'grainVolume' in sampledata and
-        'avgSlipSys' in sampledata)):
+        'avgSlipSys' in sampledata and
+        'grainAvgphi1' in sampledata and
+        'grainAvgPhi' in sampledata and
+        'grainAvgphi2' in sampledata)):
         writeMeanSVMandEVM(filename)
 
     for step in sampledata:
@@ -389,7 +414,11 @@ def writeMeansToCSV(filename):
     minEVMarr = np.zeros((numOfGrains, stepcount))
     medianSVMarr = np.zeros((numOfGrains, stepcount))
     medianEVMarr = np.zeros((numOfGrains, stepcount))
-    grainVolumearr = np.zeroes((numOfGrains, stepcount))
+    grainVolumearr = np.zeros((numOfGrains, stepcount))
+    sliparr = np.zeros((numOfGrains, stepcount))
+    phi1arr = np.zeros((numOfGrains, stepcount))
+    Phiarr = np.zeros((numOfGrains, stepcount))
+    phi2arr = np.zeros((numOfGrains, stepcount))
     avgarr = np.zeros((stepcount, 2))
     allavgarr = np.zeros((stepcount, 2))
     BCCarr = np.zeros((stepcount, 2))
@@ -410,6 +439,10 @@ def writeMeansToCSV(filename):
     sampledata['MeanBCCAvgs'].read_direct(BCCarr)
     sampledata['MeanHCPAvgs'].read_direct(HCParr)
     sampledata['grainVolume'].read_direct(grainVolumearr)
+    sampledata['avgSlipSys'].read_direct(sliparr)
+    sampledata['grainAvgphi1'].read_direct(phi1arr)
+    sampledata['grainAvgPhi'].read_direct(Phiarr)
+    sampledata['grainAvgphi2'].read_direct(phi2arr)
 
     topname = filename.split('.')[0]
 
@@ -428,5 +461,10 @@ def writeMeansToCSV(filename):
     np.savetxt(topname + 'TimeBCCAvg.csv', BCCarr, delimiter = ',')
     np.savetxt(topname + 'TimeHCPAvg.csv', HCParr, delimiter = ',')
     np.savetxt(topname + 'GrainVolume.csv', grainVolumearr, delimiter = ',')
+    np.savetxt(topname + 'SlipSystems.csv', sliparr, delimiter = ',')
+    np.savetxt(topname + 'Phi1Angle.csv', phi1arr, delimiter = ',')
+    np.savetxt(topname + 'PhiAngle.csv', Phiarr, delimiter = ',')
+    np.savetxt(topname + 'Phi2Angle.csv', phi2arr, delimiter = ',')
 
-writeMeanSVMandEVM('f20_eqdata.h5')
+
+writeMeansToCSV('f20_eqdata.h5')
