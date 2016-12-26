@@ -7,12 +7,12 @@ sys.path.append('/usr/local/lib/python3.5/dist-packages')
 import numpy as np
 from scipy import stats
 import h5py
-from itertools import product
+from itertools import chain
 
 ####################
 # SET PRIOR TO USE
 ####################
-CWD = ''
+CWD = '/home/selwyni/Desktop/h5/TestData'
 os.chdir(CWD)
 
 
@@ -326,7 +326,6 @@ def writeMeanSVMandEVM(filename):
     HCPphasemat = np.transpose(np.array([HCPSVM, HCPEVM]))
     grainsizemat = np.transpose(np.array(grainvolumes))
     slipmat = np.transpose(np.array(slipsys))
-    print(np.shape(slipmat))
     phi1mat = np.transpose(np.array(bungephi1))
     Phimat = np.transpose(np.array(bungePhi))
     phi2mat = np.transpose(np.array(bungephi2))
@@ -372,99 +371,41 @@ def writeMeanSVMandEVM(filename):
     if ('grainAvgphi2' not in sampledata):
         sampledata.create_dataset('grainAvgphi2', data = phi2mat)
 
+
+def writeDatasetToCSV(sampledata, h5datasetName, sizeOfArray, csvFilename):
+    array = np.zeros(sizeOfArray)
+    sampledata[h5datasetName].read_direct(array)
+    np.savetxt(csvFilename, array, delimiter = ',')
+
 def writeMeansToCSV(filename):
     sampledata = readHDF5(filename, 'r+')
     stepcount = 0
     grainIDs = retrieveGrainIDs(sampledata)
     numOfGrains = int(np.nanmax(grainIDs))
 
-    if (not ('MeanSVM' in sampledata and
-        'MeanEVM' in sampledata and
-        'StepAverages' in sampledata and
-        'AllPoints' in sampledata and
-        'MeanBCCAvgs' in sampledata and
-        'MeanHCPAvgs' in sampledata and
-        'sigmaSVM' in sampledata and
-        'sigmaEVM' in sampledata and
-        'maxSVM' in sampledata and
-        'maxEVM' in sampledata and
-        'minSVM' in sampledata and
-        'minEVM' in sampledata and
-        'medianSVM' in sampledata and
-        'medianEVM' in sampledata and
-        'grainVolume' in sampledata and
-        'avgSlipSys' in sampledata and
-        'grainAvgphi1' in sampledata and
-        'grainAvgPhi' in sampledata and
-        'grainAvgphi2' in sampledata)):
-        writeMeanSVMandEVM(filename)
-
     for step in sampledata:
         if ('Step-' in step):
             stepcount += 1
 
+    datasetNames = [['MeanSVM', 'MeanEVM', 'sigmaSVM', 'sigmaEVM', 'maxSVM', 'maxEVM', 'minSVM', 'minEVM', 'medianSVM', 'medianEVM', 'grainVolume', 'avgSlipSys', 'grainAvgphi1', 'grainAvgPhi', 'grainAvgphi2'],
+    ['StepAverages', 'AllPoints', 'MeanBCCAvgs', 'MeanHCPAvgs']]
 
-    SVMarr = np.zeros((numOfGrains, stepcount))
-    EVMarr = np.zeros((numOfGrains, stepcount))
-    sigmaSVMarr = np.zeros((numOfGrains, stepcount))
-    sigmaEVMarr = np.zeros((numOfGrains, stepcount))
-    maxSVMarr = np.zeros((numOfGrains, stepcount))
-    maxEVMarr = np.zeros((numOfGrains, stepcount))
-    minSVMarr = np.zeros((numOfGrains, stepcount))
-    minEVMarr = np.zeros((numOfGrains, stepcount))
-    medianSVMarr = np.zeros((numOfGrains, stepcount))
-    medianEVMarr = np.zeros((numOfGrains, stepcount))
-    grainVolumearr = np.zeros((numOfGrains, stepcount))
-    sliparr = np.zeros((numOfGrains, stepcount))
-    phi1arr = np.zeros((numOfGrains, stepcount))
-    Phiarr = np.zeros((numOfGrains, stepcount))
-    phi2arr = np.zeros((numOfGrains, stepcount))
-    avgarr = np.zeros((stepcount, 2))
-    allavgarr = np.zeros((stepcount, 2))
-    BCCarr = np.zeros((stepcount, 2))
-    HCParr = np.zeros((stepcount,2))
-
-    sampledata['MeanSVM'].read_direct(SVMarr)
-    sampledata['MeanEVM'].read_direct(EVMarr)
-    sampledata['sigmaSVM'].read_direct(sigmaSVMarr)
-    sampledata['sigmaEVM'].read_direct(sigmaEVMarr)
-    sampledata['maxSVM'].read_direct(maxSVMarr)
-    sampledata['maxEVM'].read_direct(maxEVMarr)
-    sampledata['minSVM'].read_direct(minSVMarr)
-    sampledata['minEVM'].read_direct(minEVMarr)
-    sampledata['medianSVM'].read_direct(medianSVMarr)
-    sampledata['medianEVM'].read_direct(medianEVMarr)
-    sampledata['StepAverages'].read_direct(avgarr)
-    sampledata['AllPoints'].read_direct(allavgarr)
-    sampledata['MeanBCCAvgs'].read_direct(BCCarr)
-    sampledata['MeanHCPAvgs'].read_direct(HCParr)
-    sampledata['grainVolume'].read_direct(grainVolumearr)
-    sampledata['avgSlipSys'].read_direct(sliparr)
-    sampledata['grainAvgphi1'].read_direct(phi1arr)
-    sampledata['grainAvgPhi'].read_direct(Phiarr)
-    sampledata['grainAvgphi2'].read_direct(phi2arr)
+    for name in [item for sublist in datasetNames for item in sublist]:
+        if (name not in sampledata):
+            writeMeanSVMandEVM(filename)
 
     topname = filename.split('.')[0]
 
-    np.savetxt(topname + 'GrainMeanSVM.csv', SVMarr, delimiter = ',')
-    np.savetxt(topname + 'GrainMeanEVM.csv', EVMarr, delimiter = ',')
-    np.savetxt(topname + 'GrainSigmaSVM.csv', sigmaSVMarr, delimiter = ',')
-    np.savetxt(topname + 'GrainSigmaEVM.csv', sigmaEVMarr, delimiter = ',')
-    np.savetxt(topname + 'GrainMaxSVM.csv', maxSVMarr, delimiter = ',')
-    np.savetxt(topname + 'GrainMaxEVM.csv', maxEVMarr, delimiter = ',')
-    np.savetxt(topname + 'GrainMinSVM.csv', minSVMarr, delimiter = ',')
-    np.savetxt(topname + 'GrainMinEVM.csv', minEVMarr, delimiter = ',')
-    np.savetxt(topname + 'GrainMedianSVM.csv', medianSVMarr, delimiter = ',')
-    np.savetxt(topname + 'GrainMedianEVM.csv', medianEVMarr, delimiter = ',')
-    np.savetxt(topname + 'TimeStepGrainAvg.csv', avgarr, delimiter = ',')
-    np.savetxt(topname + 'TimeStepVolumeAvg.csv', allavgarr, delimiter = ',')
-    np.savetxt(topname + 'TimeBCCAvg.csv', BCCarr, delimiter = ',')
-    np.savetxt(topname + 'TimeHCPAvg.csv', HCParr, delimiter = ',')
-    np.savetxt(topname + 'GrainVolume.csv', grainVolumearr, delimiter = ',')
-    np.savetxt(topname + 'SlipSystems.csv', sliparr, delimiter = ',')
-    np.savetxt(topname + 'Phi1Angle.csv', phi1arr, delimiter = ',')
-    np.savetxt(topname + 'PhiAngle.csv', Phiarr, delimiter = ',')
-    np.savetxt(topname + 'Phi2Angle.csv', phi2arr, delimiter = ',')
+    fileNames = [['GrainMeanSVM', 'GrainMeanEVM', 'GrainSigmaSVM', 'GrainSigmaEVM', 'GrainMaxSVM', 'GrainMaxEVM', 'GrainMinSVM', 'GrainMinEVM', 'GrainMedianSVM', 'GrainMedianEVM', 'GrainVolume', 'SlipSystems', 'Phi1Angle', 'PhiAngle', 'Phi2Angle'],
+    ['TimeStepGrainAvg', 'TimeStepVolumeAvg', 'TimeBCCAvg', 'TimeHCPAvg']]
 
+    for index in range(1):
+        for dataset in range(len(datasetNames[index])):
+            if (index == 0):
+                arrshape = (numOfGrains, stepcount)
+            elif (index == 1):
+                arrshape = (stepcount, 2)
+
+            writeDatasetToCSV(sampledata, datasetNames[index][dataset], arrshape, topname + fileNames[index][dataset] + '.csv')
 
 writeMeansToCSV('f20_eqdata.h5')
