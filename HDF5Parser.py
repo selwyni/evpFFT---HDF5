@@ -377,6 +377,22 @@ def writeDatasetToCSV(sampledata, h5datasetName, sizeOfArray, csvFilename):
     sampledata[h5datasetName].read_direct(array)
     np.savetxt(csvFilename, array, delimiter = ',')
 
+def writeCCADataCSV(sampledata, numOfGrains, stepcount, datasets, steps, filename):
+    for step in steps:
+        writedata = np.arange(1, numOfGrains + 1)
+        header = 'GrainIDs,'
+        for dataset in datasets:
+            header = header + dataset + ','
+            dataArr = np.zeros((numOfGrains, stepcount))
+            sampledata[dataset].read_direct(dataArr)
+            writedata = np.vstack((writedata, dataArr[:,step]))
+
+        writedata = np.transpose(writedata)
+        np.savetxt(filename + 'Step' + str(step) + '.csv', writedata, delimiter = ',', header = header, comments='')
+
+
+
+
 def writeMeansToCSV(filename):
     sampledata = readHDF5(filename, 'r+')
     stepcount = 0
@@ -407,5 +423,8 @@ def writeMeansToCSV(filename):
                 arrshape = (stepcount, 2)
 
             writeDatasetToCSV(sampledata, datasetNames[index][dataset], arrshape, topname + fileNames[index][dataset] + '.csv')
+
+    writeCCADataCSV(sampledata, numOfGrains, stepcount, ['grainVolume', 'grainAvgphi1', 'grainAvgPhi', 'grainAvgphi2', 'MeanSVM', 'MeanEVM'], [1, 5, 9], topname + 'CCA')
+
 
 writeMeansToCSV('f20_eqdata.h5')
