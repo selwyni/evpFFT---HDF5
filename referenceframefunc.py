@@ -1,7 +1,7 @@
 import numpy as np
 
 def euler2quaternion(phi1, Phi, phi2, P = 1):
-    # Input - REQUIRES Euler Angles in Radians, Permutation operator (+- 1)
+    # Input - Euler Angles in Radians, Permutation operator (+- 1)
     # Output - Tuple containing quaternion form
     SIGMA = 0.5*(phi1 + phi2)
     DELTA = 0.5*(phi1 - phi2)
@@ -18,9 +18,10 @@ def euler2quaternion(phi1, Phi, phi2, P = 1):
     else:
         return (q0, q1, q2, q3)
 
+
 def quaternion2euler(q0, q1, q2, q3, P = 1):
     # Input - Quaternion, Permutation operator (+- 1)
-    # Output - Tuple of Euler Angles in Bunge Convention
+    # Output - Tuple of Euler Angles in Radians in Bunge Convention
     q03 = np.square(q0) + np.square(q3)
     q12 = np.square(q1) + np.square(q2)
     CHI = np.sqrt(q03*q12)
@@ -46,3 +47,59 @@ def quaternion2euler(q0, q1, q2, q3, P = 1):
 
         THETA = tuple(THETA)
     return THETA
+
+
+def euler2orimatrix(phi1, Phi, phi2, P = 1):
+    # Input - Euler Angle in Radians, Permutation operator (+- 1)
+    # Output - Numpy orientation matrix
+    C1 = np.cos(phi1)
+    C2 = np.cos(phi2)
+    S1 = np.sin(phi1)
+    S2 = np.sin(phi2)
+    C = np.cos(Phi)
+    S = np.sin(Phi)
+
+    E1 = C1*C2 - S1*C*S2
+    E2 = S1*C2 - C1*C*S2
+    E3 = S*S2
+    E4 = -C1*S2 - S1*C*C2
+    E5 = -S1*S2 + C1*C*C2
+    E6 = S*C2
+    E7 = S1*S
+    E8 = -C1*S
+    E9 = C
+
+    return np.matrix([[E1, E2, E3], [E4, E5, E6] , [E7, E8, E9]])
+
+def euler2axisangle(phi1, Phi, phi2, P = 1):
+    # Input - Euler Angles in Radians, Permutation operator (+- 1)
+    # Output - Tuple containing (axis1, axis2, axis3, angle)
+    T = np.tan(Phi / 2)
+    SIGMA = (1/2)*(phi1 + phi2)
+    DELTA = (1/2)*(phi1 - phi2)
+    TAU = np.sqrt(np.square(T) + np.square(np.sin(SIGMA)))
+    OMEGA = 2*np.arctan(TAU / np.cos(SIGMA))
+    if (OMEGA > np.pi):
+        OMEGA = 2*np.pi - OMEGA
+
+    axis1 = (P/TAU)*T*np.cos(DELTA)
+    axis2 = (P/TAU)*T*np.sin(DELTA)
+    axis3 = (P/TAU)*T*np.sin(SIGMA)
+
+    return (axis1, axis2, axis3, OMEGA)
+
+
+def orimatrix2euler(mat, P = 1):
+    # Input - Numpy 3x3 Orientation Matrix
+    # Output - Tuple of Euler Angles in Radians
+    ZETA = (1 / np.sqrt(1 - np.square(mat[2,2])))
+    if (mat[2,2] == 1):
+        THETA1 = np.arctan2(mat[0,1], mat[0,0])
+        THETA2 = (np.pi/2)*(1 - mat[2,2])
+        THETA3 = 0
+    else:
+        THETA1 = np.arctan2(mat[2,0]*ZETA, -(mat[2,1]*ZETA))
+        THETA2 = np.arccos(mat[2,2])
+        THETA3 = np.arctan2(mat[0,2]*ZETA, mat[1,2]*ZETA)
+
+    return (THETA1, THETA2, THETA3)

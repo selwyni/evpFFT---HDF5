@@ -16,8 +16,6 @@ CWD = '/home/selwyni/Desktop/h5/TestData'
 os.chdir(CWD)
 
 
-
-
 def readHDF5(filename, permissions='r'):
     sample = h5py.File(filename, permissions)
     container = sample['3Ddatacontainer']
@@ -133,7 +131,7 @@ def retrieveSlipInformation(datapoint, dims):
 
 def grainAverageEulerAngle(phi1, Phi, phi2, P = 1):
     # Input -  Bunge Convention phi1, Phi, phi2 arrays in DEGREES, Permutation operator (+- 1)
-    # Output - Tuple with average phi1, Phi, ph2 in Bunge Convention
+    # Output - Tuple with average phi1, Phi, ph2 in Radians, in Bunge Convention
     phi1 = np.radians(phi1)
     Phi = np.radians(Phi)
     phi2 = np.radians(phi2)
@@ -167,6 +165,21 @@ def grainAverageEulerAngle(phi1, Phi, phi2, P = 1):
 
     THETA = quaternion2euler(meanq0, meanq1, meanq2, meanq3)
     return THETA
+
+def grainOrientationSpread(avgMat, phi1List, PhiList, phi2List):
+    # Input - Average Orientation Matrix, list of euler angles in radians to compare
+    # Output - Single value of GOS
+    misorAngles = []
+    invAvgMat = inv(avgMat)
+    for index in range(len(phi1List)):
+        phi1 = phi1List[index]
+        Phi = PhiList[index]
+        phi2 = phi2List[index]
+        matOfInterest = euler2orimatrix(phi1, Phi, phi2)
+        delta = np.matmul(matOfInterest, invAvgMat)
+        angle = np.arccos((np.trace(delta) - 1)/ 2)
+        misorAngles.append(angle)
+    return np.mean(misorAngles)
 
 ################################################
 # Writing Functions
@@ -208,6 +221,8 @@ def writeMeanSVMandEVM(filename):
     bungephi1 = []
     bungePhi = []
     bungephi2 = []
+
+    GOS = []
     for step in range(len(datapointdirs)):
         print("Going through Step", step)
         SVM = retrieveSVM(datapointdirs[step], dimensions, 'SVM')
@@ -232,9 +247,13 @@ def writeMeanSVMandEVM(filename):
         grainphi1 = []
         grainPhi = []
         grainphi2 = []
+        stepGOS = []
         for grainID in np.arange(1, numOfGrains + 1):
             # For the properties of individual grains.
             # Output is a list of 1 value per grain
+            if (grainID % 100 = 0):
+                print('\tGrain', grainID)
+
             condition = grainIDs == int(grainID)
             grainSVM = np.extract(condition, SVM)
             grainEVM = np.extract(condition, EVM)
@@ -243,6 +262,12 @@ def writeMeanSVMandEVM(filename):
             grainPhi1Set = np.extract(condition, phi1)
             grainPhi2Set = np.extract(condition, phi2)
             (phi1val, Phival, phi2val) = grainAverageEulerAngle(grainPhi1Set, grainPhiSet, grainPhi2Set)
+
+
+            avgOriMatrix = euler2orimatrix(phi1val, Phival, phi2val)
+            grainIDgos = grainOrientationSpread(avgOriMatrix, grainPhi1Set, grainPhiSet, grainPhi2Set)
+
+            stepGOS.append(grainIDgos)
 
             meanSVM.append(np.mean(grainSVM))
             meanEVM.append(np.mean(grainEVM))
@@ -303,6 +328,7 @@ def writeMeanSVMandEVM(filename):
         bungePhi.append(grainPhi)
         bungephi2.append(grainphi2)
 
+        GOS.append(stepGOS)
         # Grain weighted properties
         avgmeanSVM.append(np.mean(meanSVM))
         avgmeanEVM.append(np.mean(meanEVM))
