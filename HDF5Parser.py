@@ -251,7 +251,7 @@ def writeMeanSVMandEVM(filename):
         for grainID in np.arange(1, numOfGrains + 1):
             # For the properties of individual grains.
             # Output is a list of 1 value per grain
-            if (grainID % 100 = 0):
+            if (grainID % 100 == 0):
                 print('\tGrain', grainID)
 
             condition = grainIDs == int(grainID)
@@ -263,11 +263,10 @@ def writeMeanSVMandEVM(filename):
             grainPhi2Set = np.extract(condition, phi2)
             (phi1val, Phival, phi2val) = grainAverageEulerAngle(grainPhi1Set, grainPhiSet, grainPhi2Set)
 
+            #avgOriMatrix = euler2orimatrix(phi1val, Phival, phi2val)
+            #grainIDgos = grainOrientationSpread(avgOriMatrix, grainPhi1Set, grainPhiSet, grainPhi2Set)
 
-            avgOriMatrix = euler2orimatrix(phi1val, Phival, phi2val)
-            grainIDgos = grainOrientationSpread(avgOriMatrix, grainPhi1Set, grainPhiSet, grainPhi2Set)
-
-            stepGOS.append(grainIDgos)
+            #stepGOS.append(grainIDgos)
 
             meanSVM.append(np.mean(grainSVM))
             meanEVM.append(np.mean(grainEVM))
@@ -328,7 +327,8 @@ def writeMeanSVMandEVM(filename):
         bungePhi.append(grainPhi)
         bungephi2.append(grainphi2)
 
-        GOS.append(stepGOS)
+        #GOS.append(stepGOS)
+        #np.savetxt('GOS.csv', stepGOS, delimiter=',')
         # Grain weighted properties
         avgmeanSVM.append(np.mean(meanSVM))
         avgmeanEVM.append(np.mean(meanEVM))
@@ -406,9 +406,9 @@ def writeDatasetToCSV(sampledata, h5datasetName, sizeOfArray, csvFilename):
 def writeCCADataCSV(sampledata, numOfGrains, stepcount, datasets, steps, filename):
     for step in steps:
         writedata = np.arange(1, numOfGrains + 1)
-        header = 'GrainIDs,'
+        header = 'GrainIDs'
         for dataset in datasets:
-            header = header + dataset + ','
+            header = header + ',' + dataset
             dataArr = np.zeros((numOfGrains, stepcount))
             sampledata[dataset].read_direct(dataArr)
             writedata = np.vstack((writedata, dataArr[:,step]))
@@ -451,6 +451,3 @@ def writeMeansToCSV(filename):
             writeDatasetToCSV(sampledata, datasetNames[index][dataset], arrshape, topname + fileNames[index][dataset] + '.csv')
 
     writeCCADataCSV(sampledata, numOfGrains, stepcount, ['grainVolume', 'grainAvgphi1', 'grainAvgPhi', 'grainAvgphi2', 'MeanSVM', 'MeanEVM'], [1, 5, 9], topname + 'CCA')
-
-
-writeMeansToCSV('f20_eqdata.h5')

@@ -71,6 +71,8 @@ def euler2orimatrix(phi1, Phi, phi2, P = 1):
 
     return np.matrix([[E1, E2, E3], [E4, E5, E6] , [E7, E8, E9]])
 
+
+
 def euler2axisangle(phi1, Phi, phi2, P = 1):
     # Input - Euler Angles in Radians, Permutation operator (+- 1)
     # Output - Tuple containing (axis1, axis2, axis3, angle)
