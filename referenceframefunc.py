@@ -18,7 +18,6 @@ def euler2quaternion(phi1, Phi, phi2, P = 1):
     else:
         return (q0, q1, q2, q3)
 
-
 def quaternion2euler(q0, q1, q2, q3, P = 1):
     # Input - Quaternion, Permutation operator (+- 1)
     # Output - Tuple of Euler Angles in Radians in Bunge Convention
@@ -105,3 +104,14 @@ def orimatrix2euler(mat, P = 1):
         THETA3 = np.arctan2(mat[0,2]*ZETA, mat[1,2]*ZETA)
 
     return (THETA1, THETA2, THETA3)
+
+def quaternion2axisangle(q0, q1, q2, q3, P = 1):
+    # Input - Four quaternion values
+    # Output - Tuple containing a list of three axis values and an angle in radians
+    OMEGA = 2*np.arccos(q0)
+
+    if OMEGA == 0:
+        return ([q1, q2, q3], np.pi)
+    else:
+        s = np.sign(q0) / np.sqrt(np.square(q1) + np.square(q2) + np.square(q3))
+        return ([s*q1, s*q2, s*q3], OMEGA)
