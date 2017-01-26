@@ -105,6 +105,31 @@ def orimatrix2euler(mat, P = 1):
 
     return (THETA1, THETA2, THETA3)
 
+def orimatrix2quaternion(mat, P = 1):
+    # Input - Numpy 3x3 Orientation Matrix
+    # Output - Tuple containing (q0, q1, q2, q3)
+    q0 = (1/2)*np.sqrt(1 + mat[0,0] + mat[1,1] + mat[2,2])
+    q1 = (P/2)*np.sqrt(1 + mat[0,0] - mat[1,1] - mat[2,2])
+    q2 = (P/2)*np.sqrt(1 - mat[0,0] + mat[1,1] - mat[2,2])
+    q3 = (P/2)*np.sqrt(1 - mat[0,0] - mat[1,1] + mat[2,2])
+
+    if (mat[2,1] < mat[1,2]):
+        q1 = -q1
+
+    if (mat[0,2] < mat[2,0]):
+        q2 = -q2
+
+    if (mat[1,0] > mat[0,1]):
+        q3 = -q3
+
+    MAGNITUDE = np.sqrt(np.square(q0) + np.square(q1) + np.square(q2) + np.square(q3))
+
+    return (q0/MAGNITUDE, q1/MAGNITUDE, q2/MAGNITUDE, q3/MAGNITUDE)
+
+#TODO: Quaternion misorientation
+#TODO: GAM
+#TODO: Find Symmetry operator quatonion form
+
 def quaternion2axisangle(q0, q1, q2, q3, P = 1):
     # Input - Four quaternion values
     # Output - Tuple containing a list of three axis values and an angle in radians

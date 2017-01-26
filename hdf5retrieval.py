@@ -104,9 +104,9 @@ def retrieveSlipInformation(datapoint, dims):
     slip.read_direct(arr)
     return arr
 
-def grainAverageEulerAngle(phi1, Phi, phi2, P = 1):
+def grainAverageQuaternion(phi1, Phi, phi2, P = 1):
     # Input -  Bunge Convention phi1, Phi, phi2 arrays in DEGREES, Permutation operator (+- 1)
-    # Output - Tuple with average phi1, Phi, ph2 in Radians, in Bunge Convention
+    # Output - Tuple with average orientation in quaternion space.
     phi1 = np.radians(phi1)
     Phi = np.radians(Phi)
     phi2 = np.radians(phi2)
@@ -138,10 +138,14 @@ def grainAverageEulerAngle(phi1, Phi, phi2, P = 1):
     meanq2 = np.mean(q2vals)
     meanq3 = np.mean(q3vals)
 
-    (q0, q1, q2, q3) = euler2quaternion(np.pi/2, 0, 0)
+    return (meanq0, meanq1, meanq2, meanq3)
 
-    THETA = quaternion2euler(meanq0, meanq1, meanq2, meanq3)
-    return THETA
+def q2qMisorientation(quat0, quat1):
+    # Input - Two quaternions in tuple form (q0, q1, q2, q3)
+    # Output - Single value of misorientation using hexagonal symmetry operators.
+
+    misorList = []
+
 
 def grainOrientationSpread(avgMat, phi1List, PhiList, phi2List):
     # Input - Average Orientation Matrix, list of euler angles in radians to compare

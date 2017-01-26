@@ -66,8 +66,6 @@ def retrieveDataFromCSV(csvfile, timesteps):
             q2.append(row[q2index])
             q3.append(row[q3index])
             shape.append(row[shapeindex])
-        # TODO why is q0 not a matrix?
-        print(np.array(q0, dtype=np.float32).dtype)
         q0 = np.transpose(np.matrix(np.tile(np.array(q0, dtype = np.float32), (timesteps, 1))))
         q1 = np.transpose(np.matrix(np.tile(np.array(q1, dtype = np.float32), (timesteps, 1))))
         q2 = np.transpose(np.matrix(np.tile(np.array(q2, dtype = np.float32), (timesteps, 1))))
@@ -79,7 +77,7 @@ def retrieveDataFromCSV(csvfile, timesteps):
 # Writing Functions
 ################################################
 
-def writeMeanSVMandEVM(filename):
+def writeDatasetToHDF5(filename):
     sampledata = readHDF5(filename, 'r+')
     datapointdirs = retrieveDatapoints(sampledata)
     dimensions = retrieveDimension(sampledata)
@@ -155,12 +153,8 @@ def writeMeanSVMandEVM(filename):
             grainPhiSet = np.extract(condition, Phi)
             grainPhi1Set = np.extract(condition, phi1)
             grainPhi2Set = np.extract(condition, phi2)
-            (phi1val, Phival, phi2val) = grainAverageEulerAngle(grainPhi1Set, grainPhiSet, grainPhi2Set)
+            (meanq0, meanq1, meanq2, meanq3) = grainAverageQuaternion(grainPhi1Set, grainPhiSet, grainPhi2Set)
 
-            #avgOriMatrix = euler2orimatrix(phi1val, Phival, phi2val)
-            #grainIDgos = grainOrientationSpread(avgOriMatrix, grainPhi1Set, grainPhiSet, grainPhi2Set)
-
-            #stepGOS.append(grainIDgos)
 
             meanSVM.append(np.mean(grainSVM))
             meanEVM.append(np.mean(grainEVM))
@@ -301,16 +295,12 @@ def writeMeanSVMandEVM(filename):
     if ('surfaceAreaVolumeRatio' not in sampledata):
         sampledata.create_dataset('surfaceAreaVolumeRatio', data = shapemat)
 
-
-
-
-
 def writeDatasetToCSV(sampledata, h5datasetName, sizeOfArray, csvFilename):
     array = np.zeros(sizeOfArray)
     sampledata[h5datasetName].read_direct(array)
     np.savetxt(csvFilename, array, delimiter = ',')
 
-def writeCCADataCSV(sampledata, numOfGrains, stepcount, datasets, steps, filename):
+def writeCCADataToCSV(sampledata, numOfGrains, stepcount, datasets, steps, filename):
     for step in steps:
         writedata = np.arange(1, numOfGrains + 1)
         header = 'GrainIDs'
@@ -322,9 +312,6 @@ def writeCCADataCSV(sampledata, numOfGrains, stepcount, datasets, steps, filenam
 
         writedata = np.transpose(writedata)
         np.savetxt(filename + 'Step' + str(step) + '.csv', writedata, delimiter = ',', header = header, comments='')
-
-
-
 
 def writeDataToCSV(filename):
     sampledata = readHDF5(filename, 'r+')
@@ -341,15 +328,15 @@ def writeDataToCSV(filename):
 
     for name in [item for sublist in datasetNames for item in sublist]:
         if (name not in sampledata):
-            writeMeanSVMandEVM(filename)
+            writeDatasetToHDF5(filename)
 
     topname = filename.split('.')[0]
 
     fileNames = [['GrainMeanSVM', 'GrainMeanEVM', 'GrainSigmaSVM', 'GrainSigmaEVM', 'GrainMaxSVM', 'GrainMaxEVM', 'GrainMinSVM', 'GrainMinEVM', 'GrainMedianSVM', 'GrainMedianEVM', 'GrainVolume', 'SlipSystems', 'Phi1Angle', 'PhiAngle', 'Phi2Angle', 'SurfaceAreaVolumeRatio', 'GrainAvgQuat0', 'GrainAvgQuat1', 'GrainAvgQuat2', 'GrainAvgQuat3'],
     ['TimeStepGrainAvg', 'TimeStepVolumeAvg', 'TimeBCCAvg', 'TimeHCPAvg']]
 
-    for index in range(1):
-        for dataset in range(len(datasetNames[index])):
+    for index in range(2):
+        for datastring_compare(stringset in range(len(datasetNames[index])):
             if (index == 0):
                 arrshape = (numOfGrains, stepcount)
             elif (index == 1):
@@ -357,7 +344,9 @@ def writeDataToCSV(filename):
 
             writeDatasetToCSV(sampledata, datasetNames[index][dataset], arrshape, topname + fileNames[index][dataset] + '.csv')
 
-    writeCCADataCSV(sampledata, numOfGrains, stepcount, ['grainVolume', 'surfaceAreaVolumeRatio', 'MeanSVM', 'MeanEVM'], [1, 5, 9], topname + 'CCA')
+    writeCCADataToCSV(sampledata, numOfGrains, stepcount, ['grainVolume', 'surfaceAreaVolumeRatio', 'MeanSVM', 'MeanEVM'], [0,1,2,3,4,5,6,7,8,9], topname + 'CCA')
 
 
-writeDataToCSV('f20_eqdata.h5')
+for vol in ['f20_', 'f40_', 'f60_']:
+    for datatype in ['eqdata.h5', 'diskdata.h5', '1051data.h5']:
+        writeDataToCSV(vol + datatype)
