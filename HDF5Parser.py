@@ -3,8 +3,6 @@ import os
 import csv
 from referenceframefunc import *
 from hdf5retrieval import *
-print(sys.version)
-sys.path.append('/usr/local/lib/python3.5/dist-packages')
 import numpy as np
 from scipy import stats
 import h5py

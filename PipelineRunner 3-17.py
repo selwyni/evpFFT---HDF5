@@ -429,48 +429,11 @@ def monteCarloTrials(pipeline):
 
         ShapePara = ShapeList[random.randint(0,20)]
         shapeIndex = Alpha0List.index(ShapePara[0])
-        if (shapeIndex == 0):
-            tag = 'R10101'
-        elif (shapeIndex == 1):
-            tag = 'R1081'
-        elif (shapeIndex == 2):
-            tag = 'R1061'
-        elif (shapeIndex == 3):
-            tag = 'R1041'
-        elif (shapeIndex == 4):
-            tag = 'R1021'
-        elif (shapeIndex == 5):
-            tag = 'R1011'
-        elif (shapeIndex == 6):
-            tag = 'R881'
-        elif (shapeIndex == 7):
-            tag = 'R861'
-        elif (shapeIndex == 8):
-            tag = 'R841'
-        elif (shapeIndex == 9):
-            tag = 'R821'
-        elif (shapeIndex == 10):
-            tag = 'R811'
-        elif (shapeIndex == 11):
-            tag = 'R661'
-        elif (shapeIndex == 12):
-            tag = 'R641'
-        elif (shapeIndex == 13):
-            tag = 'R621'
-        elif (shapeIndex == 14):
-            tag = 'R611'
-        elif (shapeIndex == 15):
-            tag = 'R441'
-        elif (shapeIndex == 16):
-            tag = 'R421'
-        elif (shapeIndex == 17):
-            tag = 'R411'
-        elif (shapeIndex == 18):
-            tag = 'R221'
-        elif (shapeIndex == 19):
-            tag = 'R211'
-        elif (shapeIndex == 20):
-            tag = 'R111'
+        tagList = ['R10101', 'R1081', 'R1061', 'R1041', 'R1021', 'R1011',
+                    'R881', 'R861', 'R841', 'R821', 'R811', 'R661', 'R641',
+                    'R621', 'R611', 'R441', 'R421', 'R411', 'R221', 'R211',
+                    'R111']
+        tag = tagList[shapeIndex]
 
 
         pipeData = openPipeline(pipeline)
