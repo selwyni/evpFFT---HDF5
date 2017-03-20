@@ -15,7 +15,7 @@ import time
 #not the directory.
 
 #Type directory containing json files for Dream3D Pipelines
-pipelineDirectory = '/home/jackyl/Desktop/Dream3DPyTest/Pipes/BasicPipeline'
+pipelineDirectory = '/home/jackyl/Desktop/Dream3DPyTest/Pipes/FilterPipelines'
 
 #PipelineRunnerDirectory
 # Currently this requires that the PipelineRunner file be placed in the Plugins
@@ -23,7 +23,7 @@ pipelineDirectory = '/home/jackyl/Desktop/Dream3DPyTest/Pipes/BasicPipeline'
 pipeRunnerDirectory = '/home/jackyl/Desktop/Dream3DPyTest/Dream3D-6.3.29/Plugins'
 
 #Path to output directory
-outputDirectory = '/home/jackyl/Desktop/Dream3DPyTest/3-17Baseline'
+outputDirectory = '/home/jackyl/Desktop/Dream3DPyTest/VolFrac'
 
 
 
@@ -102,10 +102,11 @@ def changeShapeDist(pipeData, alpha1, beta1, alpha2, beta2, phase=1):
     for item in pipeData:
         if (item != "PipelineBuilder" and int(item) == 0):
             section = item
-    pipeData[section]['StatsDataArray'][str(phase)]['FeatureSize Vs B Over A Distributions']['Alpha'] = [alpha1]
-    pipeData[section]['StatsDataArray'][str(phase)]['FeatureSize Vs B Over A Distributions']['Beta'] = [beta1]
-    pipeData[section]['StatsDataArray'][str(phase)]['FeatureSize Vs C Over A Distributions']['Alpha'] = [alpha2]
-    pipeData[section]['StatsDataArray'][str(phase)]['FeatureSize Vs C Over A Distributions']['Beta'] = [beta2]
+
+    pipeData[section]['StatsDataArray'][str(phase)]['FeatureSize Vs B Over A Distributions']['Alpha'] = [alpha1]*6
+    pipeData[section]['StatsDataArray'][str(phase)]['FeatureSize Vs B Over A Distributions']['Beta'] = [beta1]*6
+    pipeData[section]['StatsDataArray'][str(phase)]['FeatureSize Vs C Over A Distributions']['Alpha'] = [alpha2]*6
+    pipeData[section]['StatsDataArray'][str(phase)]['FeatureSize Vs C Over A Distributions']['Beta'] = [beta2]*6
 
 def changeOutputFileName(pipeData, typeOfFile, newFileName, outputDir=outputDirectory):
     # NOTE - Only changes the file name, does not change containing directories
@@ -344,24 +345,64 @@ def runMatrixTrial():
 ######################################################################
 
 def runTrials():
-    for pipeline in glob.glob(pipelineDirectory + '/*'):
-        for mu in [4,3,2,1]:
-            for trial in range(1, 21):
+    for pipeline in glob.glob(pipelineDirectory + '/Filter3Pipeline.json'):
+        if ('Filter1' in pipeline):
+            tag = 1
+        elif ('Filter2' in pipeline):
+            tag = 2
+        else:
+            tag = 3
+        for volfrac in [0.2,0.3,0.4,0.5,0.6]:
+            for trial in range(1, 6):
                 pipeData = openPipeline(pipeline)
                 normalize(pipeData)
+                filename = 'Baseline Filters ' + str(tag) + ' VolFrac ' + str(int(100*volfrac)) + ' T' + str(trial)
 
-                filename = 'Baseline ' + str(mu) + ' T' + str(trial)
+                changeDimensions(pipeData, 128, 128, 128)
+                changeMuAndSD(pipeData, 2, 0.1, 2, 5)
 
-                changeMuAndSD(pipeData, mu, 0.1, 2)
-
-                changeShapeDist(pipeData, 30.6667, 1.40255, 4.02051, 27.1268, 2)
-
+                changePhaseFraction(pipeData, 1-volfrac, 1)
+                changePhaseFraction(pipeData, volfrac, 2)
                 changeOutputFileName(pipeData, 'dream3d', filename + '.dream3d', outputDirectory + '/Dream3Ds')
                 changeOutputFileName(pipeData, 'csv', filename + '.csv', outputDirectory + '/CSVs')
                 updatePipeline(pipeData, pipeline)
                 runPipelineRunner('\ '.join(pipeline.split(' ')))
 
 runTrials()
+
+def runTrials():
+    for pipeline in glob.glob(pipelineDirectory + '/*'):
+        for shape in ['10101', '1051', '1011', '111']:
+
+            if (shape == '10101'):
+                shapeParam = (30.6667, 1.40255, 4.02051, 27.1268)
+            elif (shape == '1051'):
+                shapeParam = (15.7045, 16.2173, 4.97866, 27.9236)
+            elif (shape == '551'):
+                shapeParam = (30.7033, 1.42665, 6.9861, 24.71343)
+            elif (shape == '1011'):
+                shapeParam = (4.27507, 28.0289, 4.36924, 27.8468)
+            elif (shape == '111'):
+                shapeParam = (15.3539, 1.70799, 15.0549, 1.40672)
+
+            for trial in range(1, 2):
+                pipeData = openPipeline(pipeline)
+                normalize(pipeData)
+
+                filename = 'Baseline Shape ' + str(shape) + ' T' + str(trial)
+
+                changeDimensions(pipeData, 128, 128, 128)
+                changeMuAndSD(pipeData, 2, 0.1, 1, 5)
+
+                changePhaseFraction(pipeData, 0.7, 1)
+                changePhaseFraction(pipeData, 0.3, 2)
+
+                changeShapeDist(pipeData, shapeParam[0], shapeParam[1], shapeParam[2], shapeParam[3], 2)
+
+                changeOutputFileName(pipeData, 'dream3d', filename + '.dream3d', outputDirectory + '/Dream3Ds')
+                changeOutputFileName(pipeData, 'csv', filename + '.csv', outputDirectory + '/CSVs')
+                updatePipeline(pipeData, pipeline)
+                runPipelineRunner('\ '.join(pipeline.split(' ')))
 
 def monteCarloTrials(pipeline):
     ShapeList = []
